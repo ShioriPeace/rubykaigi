@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Step 4: リアルタイム入力</title>
+  <script src="https://cdn.jsdelivr.net/npm/@ruby/head-wasm-wasi@latest/dist/browser.script.iife.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; background: #f5f5f5; }
+    textarea { width: 100%; height: 100px; font-size: 18px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+    .card { background: white; padding: 20px; border-radius: 8px; margin: 10px 0; }
+    .label { font-size: 14px; color: #666; margin-bottom: 5px; }
+    .value { font-size: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .loading { color: #999; }
+  </style>
+</head>
+<body>
+  <h1>リアルタイムテキスト分析</h1>
+  <p class="loading">Rubyを読み込み中...</p>
+  <p>テキストを入力すると、Rubyがリアルタイムで分析する:</p>
+
+  <textarea id="input" placeholder="ここに何か書いてみて..."></textarea>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">文字数</div>
+      <div class="value" id="char-count">0</div>
+    </div>
+    <div class="card">
+      <div class="label">単語数（スペース区切り）</div>
+      <div class="value" id="word-count">0</div>
+    </div>
+    <div class="card">
+      <div class="label">行数</div>
+      <div class="value" id="line-count">0</div>
+    </div>
+    <div class="card">
+      <div class="label">逆順</div>
+      <div class="value" id="reversed" style="font-size: 16px; word-break: break-all;"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 10px;">
+    <div class="label">文字の出現頻度（上位5）</div>
+    <div class="value" id="frequency" style="font-size: 16px;"></div>
+  </div>
+
+  <script type="text/ruby">
+    require "js"
+
+    document = JS.global[:document]
+    document.querySelector(".loading")[:style][:display] = "none"
+
+    input = document.getElementById("input")
+    char_count = document.getElementById("char-count")
+    word_count = document.getElementById("word-count")
+    line_count = document.getElementById("line-count")
+    reversed = document.getElementById("reversed")
+    frequency = document.getElementById("frequency")
+
+    # 入力があるたびにRubyで分析
+    input.addEventListener("input") do
+      text = input[:value].to_s
+
+      # Rubyの文字列メソッドで分析
+      char_count[:textContent] = text.length.to_s
+      word_count[:textContent] = text.split(/\s+/).reject(&:empty?).size.to_s
+      line_count[:textContent] = (text.empty? ? 0 : text.lines.size).to_s
+      reversed[:textContent] = text.reverse
+
+      # 文字の出現頻度（Rubyのtally メソッド）
+      if text.length > 0
+        freq = text.gsub(/\s/, "").chars.tally
+                   .sort_by { |_char, count| -count }
+                   .first(5)
+                   .map { |char, count| "「#{char}」#{count}回" }
+                   .join("、")
+        frequency[:textContent] = freq
+      else
+        frequency[:textContent] = "-"
+      end
+    end
+  </script>
+</body>
+</html>
